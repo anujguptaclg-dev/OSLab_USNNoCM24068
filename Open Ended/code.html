@@ -1,0 +1,491 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>OS Deadlock Simulation</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            color: #333;
+        }
+
+        .navbar {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            padding: 1rem 2rem;
+            box-shadow: 0 2px 20px rgba(0,0,0,0.1);
+            position: fixed;
+            width: 100%;
+            top: 0;
+            z-index: 1000;
+        }
+
+        .nav-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .logo {
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: #667eea;
+        }
+
+        .nav-links {
+            display: flex;
+            list-style: none;
+            gap: 2rem;
+        }
+
+        .nav-links a {
+            text-decoration: none;
+            color: #333;
+            font-weight: 500;
+            padding: 0.5rem 1rem;
+            border-radius: 25px;
+            transition: all 0.3s ease;
+        }
+
+        .nav-links a:hover,
+        .nav-links a.active {
+            background: #667eea;
+            color: white;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 120px 2rem 2rem;
+            min-height: 100vh;
+        }
+
+        /* Start Page */
+        .start-page {
+            text-align: center;
+            padding-top: 4rem;
+        }
+
+        .start-title {
+            font-size: 4rem;
+            color: white;
+            margin-bottom: 2rem;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+
+        .start-subtitle {
+            font-size: 1.5rem;
+            color: rgba(255,255,255,0.9);
+            margin-bottom: 4rem;
+            max-width: 600px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        .start-btn {
+            background: #ff6b6b;
+            color: white;
+            border: none;
+            padding: 1.5rem 3rem;
+            font-size: 1.5rem;
+            border-radius: 50px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 10px 30px rgba(255,107,107,0.4);
+            text-transform: uppercase;
+            letter-spacing: 2px;
+        }
+
+        .start-btn:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 15px 40px rgba(255,107,107,0.6);
+            background: #ff5252;
+        }
+
+        /* Explanation Page */
+        .explanation-page {
+            background: white;
+            border-radius: 20px;
+            padding: 3rem;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.1);
+            margin-bottom: 2rem;
+        }
+
+        .section-title {
+            font-size: 2.5rem;
+            color: #667eea;
+            margin-bottom: 1.5rem;
+            text-align: center;
+        }
+
+        .explanation-content {
+            line-height: 1.8;
+            font-size: 1.1rem;
+            color: #555;
+        }
+
+        .conditions-list {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 2rem;
+            margin: 2rem 0;
+        }
+
+        .condition-card {
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            padding: 2rem;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            border-left: 5px solid #667eea;
+        }
+
+        .condition-title {
+            font-size: 1.3rem;
+            color: #333;
+            margin-bottom: 1rem;
+            font-weight: bold;
+        }
+
+        .simulate-btn {
+            background: #4ecdc4;
+            color: white;
+            border: none;
+            padding: 1rem 2rem;
+            font-size: 1.1rem;
+            border-radius: 25px;
+            cursor: pointer;
+            margin-top: 2rem;
+            transition: all 0.3s ease;
+        }
+
+        .simulate-btn:hover {
+            background: #45b7aa;
+            transform: translateY(-2px);
+        }
+
+        /* Simulation Page */
+        .simulation-container {
+            display: none;
+            background: white;
+            border-radius: 20px;
+            padding: 3rem;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.1);
+        }
+
+        .resource-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 2rem;
+            margin: 2rem 0;
+        }
+
+        .resource {
+            text-align: center;
+            padding: 2rem;
+            border: 3px solid #ddd;
+            border-radius: 15px;
+            transition: all 0.3s ease;
+        }
+
+        .resource.held {
+            border-color: #ff6b6b;
+            background: #ffe6e6;
+        }
+
+        .resource.requested {
+            border-color: #feca57;
+            background: #fff8e1;
+        }
+
+        .resource-name {
+            font-size: 1.5rem;
+            font-weight: bold;
+            margin-bottom: 1rem;
+        }
+
+        .process-status {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 1rem;
+            margin-top: 2rem;
+        }
+
+        .process {
+            padding: 1.5rem;
+            border-radius: 10px;
+            text-align: center;
+            font-weight: bold;
+        }
+
+        .process.running { background: #4ecdc4; color: white; }
+        .process.waiting { background: #ff6b6b; color: white; }
+        .process.deadlocked { background: #95a5a6; color: white; }
+
+        .controls {
+            text-align: center;
+            margin: 2rem 0;
+        }
+
+        .control-btn {
+            background: #667eea;
+            color: white;
+            border: none;
+            padding: 1rem 2rem;
+            margin: 0 1rem;
+            border-radius: 25px;
+            cursor: pointer;
+            font-size: 1rem;
+            transition: all 0.3s ease;
+        }
+
+        .control-btn:hover {
+            background: #5a67d8;
+            transform: translateY(-2px);
+        }
+
+        .control-btn:disabled {
+            background: #bdc3c7;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        @media (max-width: 768px) {
+            .nav-links {
+                display: none;
+            }
+            
+            .resource-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .process-status {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Navigation Bar -->
+    <nav class="navbar">
+        <div class="nav-container">
+            <div class="logo">🖥️ OS Deadlock Simulator</div>
+            <ul class="nav-links">
+                <li><a href="#" onclick="showPage('start')" class="nav-link">Home</a></li>
+                <li><a href="#" onclick="showPage('explanation')" class="nav-link">Explanation</a></li>
+                <li><a href="#" onclick="showPage('simulation')" class="nav-link">Simulation</a></li>
+            </ul>
+        </div>
+    </nav>
+
+    <div class="container">
+        <!-- Start Page -->
+        <div id="start-page" class="start-page">
+            <h1 class="start-title">Operating System Deadlock</h1>
+            <p class="start-subtitle">Explore the fascinating world of deadlock in operating systems. Learn the theory and simulate real scenarios.</p>
+            <button class="start-btn" onclick="showPage('explanation')">Start Learning</button>
+        </div>
+
+        <!-- Explanation Page -->
+        <div id="explanation-page" class="explanation-page" style="display: none;">
+            <h2 class="section-title">What is Deadlock?</h2>
+            <div class="explanation-content">
+                <p><strong>Deadlock</strong> is a situation where two or more processes are unable to proceed because each is waiting for the other to release a resource. None of the processes can be completed because each process is waiting for a resource held by another process.</p>
+                
+                <h3 style="margin: 2rem 0 1rem 0; color: #667eea;">Coffman's 4 Conditions for Deadlock:</h3>
+                
+                <div class="conditions-list">
+                    <div class="condition-card">
+                        <div class="condition-title">1️⃣ Mutual Exclusion</div>
+                        <p>At least one resource must be held in a non-sharable mode. Only one process at a time can use the resource.</p>
+                    </div>
+                    <div class="condition-card">
+                        <div class="condition-title">2️⃣ Hold and Wait</div>
+                        <p>A process holding at least one resource is waiting to acquire additional resources held by other processes.</p>
+                    </div>
+                    <div class="condition-card">
+                        <div class="condition-title">3️⃣ No Preemption</div>
+                        <p>Resources cannot be preempted. A resource can be released only voluntarily by the process holding it.</p>
+                    </div>
+                    <div class="condition-card">
+                        <div class="condition-title">4️⃣ Circular Wait</div>
+                        <p>A set of processes form a circular chain, where each process is waiting for a resource that the next process in the chain holds.</p>
+                    </div>
+                </div>
+
+                <div style="text-align: center; margin-top: 3rem;">
+                    <button class="simulate-btn" onclick="showPage('simulation')">🚀 Run Deadlock Simulation</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Simulation Page -->
+        <div id="simulation-page" class="simulation-container" style="display: none;">
+            <h2 class="section-title">🔄 Deadlock Simulation</h2>
+            <div class="explanation-content">
+                <p>Watch how 4 processes compete for 3 resources, leading to a classic deadlock scenario!</p>
+                
+                <div class="resource-grid">
+                    <div class="resource" id="resource-A">
+                        <div class="resource-name">Resource A</div>
+                        <div>📁 File A</div>
+                    </div>
+                    <div class="resource" id="resource-B">
+                        <div class="resource-name">Resource B</div>
+                        <div>📁 File B</div>
+                    </div>
+                    <div class="resource" id="resource-C">
+                        <div class="resource-name">Resource C</div>
+                        <div>💾 Printer</div>
+                    </div>
+                </div>
+
+                <div class="process-status">
+                    <div class="process running" id="process-P1">P1: Running</div>
+                    <div class="process running" id="process-P2">P2: Running</div>
+                    <div class="process waiting" id="process-P3">P3: Waiting</div>
+                    <div class="process waiting" id="process-P4">P4: Waiting</div>
+                </div>
+
+                <div class="controls">
+                    <button class="control-btn" onclick="startSimulation()">Start Simulation</button>
+                    <button class="control-btn" onclick="resetSimulation()" id="reset-btn" disabled>Reset</button>
+                    <button class="control-btn" onclick="showPage('explanation')">Back to Theory</button>
+                </div>
+
+                <div style="margin-top: 2rem; padding: 1.5rem; background: #e8f5e8; border-radius: 10px; font-weight: bold;">
+                    <strong>Status:</strong> <span id="simulation-status">Ready to simulate deadlock</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function showPage(page) {
+            // Hide all pages
+            document.getElementById('start-page').style.display = 'none';
+            document.getElementById('explanation-page').style.display = 'none';
+            document.getElementById('simulation-page').style.display = 'none';
+            
+            // Show selected page
+            if (page === 'start') {
+                document.getElementById('start-page').style.display = 'block';
+            } else if (page === 'explanation') {
+                document.getElementById('explanation-page').style.display = 'block';
+            } else if (page === 'simulation') {
+                document.getElementById('simulation-page').style.display = 'block';
+            }
+            
+            // Update active nav link
+            document.querySelectorAll('.nav-link').forEach(link => link.classList.remove('active'));
+            event?.target?.classList.add('active');
+        }
+
+        let simulationStep = 0;
+        const simulationSteps = [
+            // Step 0: Initial state
+            {},
+            // Step 1: P1 holds A, requests B
+            { p1: 'holds A, wants B', resourceA: 'held', p2: 'holds B, wants C' },
+            // Step 2: P2 holds B, requests C
+            { resourceB: 'held', p3: 'holds C, wants A' },
+            // Step 3: P3 holds C, requests A
+            { resourceC: 'held', p4: 'holds nothing, wants A' },
+            // Step 4: All waiting - DEADLOCK!
+            { status: 'DEADLOCK!', p1: 'waiting', p2: 'waiting', p3: 'waiting', p4: 'waiting' }
+        ];
+
+        function startSimulation() {
+            simulationStep = 0;
+            nextStep();
+        }
+
+        function nextStep() {
+            if (simulationStep >= simulationSteps.length) {
+                showDeadlock();
+                return;
+            }
+
+            const step = simulationSteps[simulationStep];
+            updateSimulation(step);
+            simulationStep++;
+            
+            if (simulationStep < simulationSteps.length) {
+                setTimeout(() => nextStep(), 1500);
+            }
+        }
+
+        function updateSimulation(step) {
+            // Update resources
+            ['A', 'B', 'C'].forEach(res => {
+                const el = document.getElementById(`resource-${res}`);
+                el.className = 'resource';
+                if (step[`resource${res}`]) {
+                    el.classList.add(step[`resource${res}`]);
+                }
+            });
+
+            // Update processes
+            ['P1', 'P2', 'P3', 'P4'].forEach((p, i) => {
+                const el = document.getElementById(`process-${p}`);
+                el.className = `process running`;
+                el.textContent = `${p}: Running`;
+            });
+
+            document.getElementById('simulation-status').textContent = 
+                `Step ${simulationStep}: Process execution in progress...`;
+        }
+
+        function showDeadlock() {
+            // Show deadlock state
+            document.getElementById('resource-A').className = 'resource held requested';
+            document.getElementById('resource-B').className = 'resource held requested';
+            document.getElementById('resource-C').className = 'resource held requested';
+
+            ['P1', 'P2', 'P3', 'P4'].forEach(p => {
+                const el = document.getElementById(`process-${p}`);
+                el.className = 'process deadlocked';
+                el.textContent = `${p}: DEADLOCKED`;
+            });
+
+            document.getElementById('simulation-status').innerHTML = 
+                '❌ <strong>DEADLOCK DETECTED!</strong> All processes are waiting for each other in a circular chain.';
+
+            document.getElementById('reset-btn').disabled = false;
+        }
+
+        function resetSimulation() {
+            simulationStep = 0;
+            ['A', 'B', 'C'].forEach(res => {
+                document.getElementById(`resource-${res}`).className = 'resource';
+            });
+
+            ['P1', 'P2', 'P3', 'P4'].forEach(p => {
+                const el = document.getElementById(`process-${p}`);
+                el.className = 'process running';
+                el.textContent = `${p}: Running`;
+            });
+
+            document.getElementById('simulation-status').textContent = 'Ready to simulate deadlock';
+            document.getElementById('reset-btn').disabled = true;
+        }
+
+        // Initialize navigation
+        document.querySelectorAll('.nav-link').forEach(link => {
+            link.addEventListener('click', function(e) {
+                e.preventDefault();
+            });
+        });
+    </script>
+</body>
+</html>
